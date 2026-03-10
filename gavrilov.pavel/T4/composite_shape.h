@@ -10,6 +10,15 @@ private:
     std::vector<std::unique_ptr<Shape>> shapes;
 
 public:
+    CompositeShape() = default;
+    ~CompositeShape() override = default;
+
+    CompositeShape(const CompositeShape&) = delete;
+    CompositeShape& operator=(const CompositeShape&) = delete;
+
+    CompositeShape(CompositeShape&&) = default;
+    CompositeShape& operator=(CompositeShape&&) = default;
+
     void addShape(std::unique_ptr<Shape> shape);
 
     double getArea() const override;
