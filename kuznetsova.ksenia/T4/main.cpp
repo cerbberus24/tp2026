@@ -312,6 +312,12 @@ std::cout << "\n";
 int main() {
 setlocale(LC_ALL, "C");
 
+// Check if there's any input available
+if (std::cin.peek() == EOF) {
+std::cerr << "Error: No input provided\n";
+return 1;
+}
+
 std::cout << "\n";
 std::cout << "SHAPES PROGRAM TESTING\n";
 
