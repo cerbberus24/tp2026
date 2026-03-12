@@ -43,11 +43,6 @@ void printShapesInfo(const std::vector<std::unique_ptr<Shape>>& shapes) {
     }
 }
 int main() {
-    double factor;
-    if (!(std::cin >> factor)) {
-        std::cerr << "Error with std::cin" << std::endl;
-        return 1;
-    }
     std::vector<std::unique_ptr<Shape>> shapes;
 
     shapes.push_back(std::make_unique<Rectangle>(Point(0, 0), Point(4, 3)));
@@ -65,6 +60,15 @@ int main() {
     std::cout << "=== BEFORE SCALING ===" << std::endl;
     printShapesInfo(shapes);
 
+    double factor;
+    if (!(std::cin >> factor)) {
+        std::cerr << "Error: invalid input factor" << std::endl;
+        return 1;
+    }
+    if (factor <= 0.0) {
+        std::cerr << "Error: factor must be positive" << std::endl;
+        return 1;
+    }
     std::cout << "\n=== BONUS 1: POINT CONTAINS TEST ===" << std::endl;
     Point testPoint(2.5, 1.8);
     std::cout << "Testing point (2.50, 1.80):" << std::endl;
