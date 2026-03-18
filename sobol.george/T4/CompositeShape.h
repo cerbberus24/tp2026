@@ -16,7 +16,7 @@ public:
     CompositeShape() {}
     ~CompositeShape()
     {
-        members.~vector();
+        members.clear();
     }
     void putInComposite(std::unique_ptr<Shape> shape)
     {
