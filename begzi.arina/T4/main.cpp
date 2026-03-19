@@ -1,22 +1,12 @@
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <cstdlib>
 #include "rectangle.h"
 #include "circle.h"
 #include "trapezoid.h"
 #include "composite_shape.h"
 
-int main(int argc, char* argv[]) {
-    double scaleFactor = 2.0;
-
-    if (argc > 1) {
-        scaleFactor = std::atof(argv[1]);
-        if (scaleFactor <= 0) {
-            scaleFactor = 2.0;
-        }
-    }
-
+int main() {
     std::vector<std::unique_ptr<Shape>> scene;
 
     scene.push_back(std::make_unique<Rectangle>(Point{ 0, 0 }, Point{ 2, 2 }));
@@ -36,7 +26,7 @@ int main(int argc, char* argv[]) {
     }
 
     for (size_t i = 0; i < scene.size(); i++) {
-        scene[i]->scale(scaleFactor);
+        scene[i]->scale(2.0);
     }
 
     std::cout << "\n AFTER SCALE \n";
