@@ -13,6 +13,13 @@ public:
     virtual void move(double dx, double dy) = 0;
     virtual void scale(double factor) = 0;
     virtual std::string getName() const = 0;
+
+    virtual void print() const {
+        printf("[%s, (%.2f, %.2f), %.2f]",
+            getName().c_str(),
+            getCenter().x, getCenter().y,
+            getArea());
+    }
 };
 
 #endif
