@@ -146,7 +146,7 @@ bool compareDS(const DataStruct& a, const DataStruct& b) {
 
 int main() {
     std::vector<DataStruct> data;
-    while (!std::cin.eof()) {
+    while (std::cin) {
         std::copy(std::istream_iterator<DataStruct>(std::cin),
                   std::istream_iterator<DataStruct>(),
                   std::back_inserter(data));
