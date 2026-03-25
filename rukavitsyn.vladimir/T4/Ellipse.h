@@ -21,4 +21,3 @@ public:
 
     void print(std::ostream& stream) const override;
 };
-
