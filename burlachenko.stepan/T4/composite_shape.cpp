@@ -32,42 +32,37 @@ Point CompositeShape::getCenter() const
         throw std::invalid_argument("Composite shape is empty");
     }
 
-    Point firstCenter = shapes_[0]->getCenter();
-    double minX = firstCenter.x;
-    double maxX = firstCenter.x;
-    double minY = firstCenter.y;
-    double maxY = firstCenter.y;
+    Bounds first = shapes_[0]->getBounds();
+    double minX = first.minX;
+    double maxX = first.maxX;
+    double minY = first.minY;
+    double maxY = first.maxY;
 
     for (const std::shared_ptr<Shape>& shape : shapes_)
     {
-        Point currentCenter = shape->getCenter();
-
-        if (currentCenter.x < minX)
+        Bounds b = shape->getBounds();
+        if(b.minX < minX)
         {
-            minX = currentCenter.x;
+            minX = b.minX;
+        }
+        
+        if(b.maxX > maxX)
+        {
+            maxX = b.maxX;
+        }
+        
+        if(b.minY < minY) 
+        {
+            minY = b.minY;
         }
 
-        if (currentCenter.x > maxX)
+        if(b.maxY > maxY)
         {
-            maxX = currentCenter.x;
-        }
-
-        if (currentCenter.y < minY)
-        {
-            minY = currentCenter.y;
-        }
-
-        if (currentCenter.y > maxY)
-        {
-            maxY = currentCenter.y;
+            maxY = b.maxY;
         }
     }
 
-    Point center;
-    center.x = (minX + maxX) / 2.0;
-    center.y = (minY + maxY) / 2.0;
-
-    return center;
+    return { (minX + maxX) / 2.0, (minY + maxY) / 2.0 };
 }
 
 void CompositeShape::move(const Point& newCenter)
@@ -132,7 +127,7 @@ std::string CompositeShape::getDescription() const
     Point center = getCenter();
     oss << std::fixed << std::setprecision(2);
     oss << "[COMPOSITE, (" << center.x << ", " << center.y << "), " << getArea() << ":\n";
-    
+
     for (size_t i = 0; i < shapes_.size(); i++)
     {
         Point c = shapes_[i]->getCenter();

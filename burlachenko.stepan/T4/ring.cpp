@@ -56,5 +56,16 @@ void Ring::scale(double ratio)
 
 std::string Ring::getName() const
 {
-    return "Ring";
+    return "RING";
+}
+
+Bounds Ring::getBounds() const
+{
+    return 
+    {
+        center_.x - outerRadius_,
+        center_.y - outerRadius_,
+        center_.x + outerRadius_,
+        center_.y + outerRadius_
+    };
 }

@@ -47,5 +47,16 @@ void Square::scale(double ratio)
 
 std::string Square::getName() const
 {
-    return "Square";
+    return "SQUARE";
+}
+
+Bounds Square::getBounds() const
+{
+    return 
+    {
+        corner_.x,
+        corner_.y,
+        corner_.x + side_,
+        corner_.y + side_
+    };
 }

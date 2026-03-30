@@ -64,5 +64,10 @@ void Rectangle::scale(double ratio)
 
 std::string Rectangle::getName() const
 {
-    return "Rectangle";
+    return "RECTANGLE";
+}
+
+Bounds Rectangle::getBounds() const
+{
+    return { corner1_.x, corner1_.y, corner2_.x, corner2_.y };
 }
