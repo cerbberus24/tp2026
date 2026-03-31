@@ -7,9 +7,10 @@
 #include <sstream>
 
 struct DataStruct {
-    unsigned long long key1;
-    unsigned long long key2;
-    std::string key3;
+    unsigned long long key1{0};
+    unsigned long long key2{0};
+    std::string key3{""};
+    size_t key2_length{0};
 };
 
 struct DelimiterIO {
@@ -68,6 +69,7 @@ std::istream& operator>>(std::istream& in, UllLitIO&& dest) {
 
 struct UllBinIO {
     unsigned long long& ref;
+    size_t& len;
 };
 
 std::istream& operator>>(std::istream& in, UllBinIO&& dest) {
@@ -84,15 +86,23 @@ std::istream& operator>>(std::istream& in, UllBinIO&& dest) {
         return in;
     }
     unsigned long long val = 0;
-    bool hasDigits = false;
+    size_t length = 0;
     char c = '\0';
-    while (in.get(c) && (c == '0' || c == '1')) {
-        hasDigits = true;
-        val = (val << 1) | static_cast<unsigned long long>(c - '0');
+    while (in.get(c)) {
+        if (c == '0' || c == '1') {
+            val = (val << 1) | static_cast<unsigned long long>(c - '0');
+            length++;
+        } else {
+            in.putback(c);
+            break;
+        }
     }
-    if (hasDigits) {
+    if (length > 0) {
         dest.ref = val;
-        in.putback(c);
+        dest.len = length;
+        if (in.eof()) {
+            in.clear(in.rdstate() & ~std::ios::failbit);
+        }
     } else {
         in.setstate(std::ios::failbit);
     }
@@ -123,7 +133,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dest) {
     if (!sentry) {
         return in;
     }
-    DataStruct temp{0, 0, ""};
+    DataStruct temp;
     bool isKey1Found = false;
     bool isKey2Found = false;
     bool isKey3Found = false;
@@ -145,7 +155,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dest) {
             in >> UllLitIO{temp.key1};
             isKey1Found = true;
         } else if (key == "key2" && !isKey2Found) {
-            in >> UllBinIO{temp.key2};
+            in >> UllBinIO{temp.key2, temp.key2_length};
             isKey2Found = true;
         } else if (key == "key3" && !isKey3Found) {
             in >> StringIO{temp.key3};
@@ -174,13 +184,13 @@ std::ostream& operator<<(std::ostream& out, const DataStruct& src) {
         return out;
     }
     out << "(:key1 " << src.key1 << "ull:key2 0b";
-    if (src.key2 == 0) {
-        out << '0';
+    if (src.key2_length == 0) {
+        out << src.key2;
     } else {
         std::string bin;
         unsigned long long k2 = src.key2;
         const unsigned long long BASE = 2;
-        while (k2 > 0) {
+        for (size_t i = 0; i < src.key2_length; ++i) {
             bin = static_cast<char>('0' + (k2 % BASE)) + bin;
             k2 /= BASE;
         }
