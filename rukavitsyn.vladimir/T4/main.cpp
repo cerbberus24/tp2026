@@ -40,9 +40,9 @@ int main() {
 
         std::cout << "\n--- AFTER SCALE (x" << factor << ") --- \n";
         printShapes(myShapes);
-    } 
+    }
     catch (...) {
-        std::cerr << "ERROR" << "\n";
+        std::cerr << "UNKNOWN ERROR\n";
     }
     return 0;
 }
