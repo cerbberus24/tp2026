@@ -91,7 +91,7 @@ namespace nspace {
     }
 
     std::ostream& operator<<(std::ostream& out, const DataStruct& src) {
-        out << "(:key1 " << std::scientific << std::setprecision(1) << std::lowercase << src.key1;
+        out << "(:key1 " << std::scientific << std::setprecision(1) << std::nouppercase << src.key1;
         out << ":key2 0b" << (src.key2 == 0 ? "0" : "");
         if (src.key2 > 0) {
             std::string b;
