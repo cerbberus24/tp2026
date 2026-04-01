@@ -18,9 +18,8 @@ bool isDoubleLit(const std::string& s)
 {
     if (s.empty()) return false;
     size_t pos = 0;
-    double val;
     try {
-        val = std::stod(s, &pos);
+        std::stod(s, &pos);
     } catch (...) {
         return false;
     }
