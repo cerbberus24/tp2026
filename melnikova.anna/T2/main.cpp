@@ -184,7 +184,7 @@ namespace nspace {
 
 int main() {
     std::vector<nspace::DataStruct> data;
-    while (std::cin) {
+    while (!std::cin.eof()) {
         std::copy(
             std::istream_iterator<nspace::DataStruct>(std::cin),
             std::istream_iterator<nspace::DataStruct>(),
@@ -194,13 +194,6 @@ int main() {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
-        else if (std::cin.eof()) {
-            break;
-        }
-    }
-    if (data.empty()) {
-        std::cerr << "Looks like there is no supported record. Cannot determine input. Test skipped" << std::endl;
-        return 2;
     }
     std::sort(data.begin(), data.end(), nspace::compareData);
     std::copy(
