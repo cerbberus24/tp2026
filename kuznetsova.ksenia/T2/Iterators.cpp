@@ -5,7 +5,7 @@
 #include <iterator>
 #include <iomanip>
 #include <complex>
-#include <limits>
+#include <sstream>
 
 namespace nspace {
     struct DataStruct {
@@ -14,87 +14,63 @@ namespace nspace {
         std::string key3;
     };
 
-    std::istream& operator>>(std::istream& in, DataStruct& ds) {
+    bool parseRecord(const std::string& line, DataStruct& ds) {
+        std::istringstream in(line);
         char c;
 
-        if (!(in >> c) || c != '(') {
-            in.setstate(std::ios::failbit);
-            return in;
-        }
+        if (!(in >> c) || c != '(') return false;
 
         bool k1 = false, k2 = false, k3 = false;
 
         for (int i = 0; i < 3 && in; ++i) {
-            if (!(in >> c) || c != ':') {
-                in.setstate(std::ios::failbit);
-                break;
-            }
+            if (!(in >> c) || c != ':') return false;
 
             std::string key;
             in >> key;
 
-            if (!(in >> c) || c != ':') {
-                in.setstate(std::ios::failbit);
-                break;
-            }
+            if (!(in >> c) || c != ':') return false;
 
             if (key == "key1") {
                 char p0, p1;
-                if (!(in >> p0 >> p1) || p0 != '0' || (p1 != 'x' && p1 != 'X')) {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
+                if (!(in >> p0 >> p1) || p0 != '0' || (p1 != 'x' && p1 != 'X')) return false;
                 in >> std::hex >> ds.key1 >> std::dec;
-                if (!(in >> c) || c != ':') {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
+                if (!(in >> c) || c != ':') return false;
                 k1 = true;
             }
             else if (key == "key2") {
                 char h, cc, o, cl, cln;
                 double r, im;
-                if (!(in >> h >> cc >> o) || h != '#' || (cc != 'c' && cc != 'C') || o != '(') {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
-                if (!(in >> r >> im)) {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
-                if (!(in >> cl >> cln) || cl != ')' || cln != ':') {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
+                if (!(in >> h >> cc >> o) || h != '#' || (cc != 'c' && cc != 'C') || o != '(') return false;
+                if (!(in >> r >> im)) return false;
+                if (!(in >> cl >> cln) || cl != ')' || cln != ':') return false;
                 ds.key2 = { r, im };
                 k2 = true;
             }
             else if (key == "key3") {
                 char q;
-                if (!(in >> q) || q != '"') {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
+                if (!(in >> q) || q != '"') return false;
                 std::getline(in, ds.key3, '"');
-                if (!(in >> c) || c != ':') {
-                    in.setstate(std::ios::failbit);
-                    break;
-                }
+                if (!(in >> c) || c != ':') return false;
                 k3 = true;
             }
             else {
-                in.setstate(std::ios::failbit);
-                break;
+                return false;
             }
         }
 
-        if (in && (!(in >> c) || c != ')')) {
-            in.setstate(std::ios::failbit);
-        }
+        if (!(in >> c) || c != ')') return false;
 
-        if (!in || !k1 || !k2 || !k3) {
-            in.setstate(std::ios::failbit);
+        return k1 && k2 && k3;
+    }
+
+    std::istream& operator>>(std::istream& in, DataStruct& ds) {
+        std::string line;
+        if (std::getline(in, line)) {
+            if (parseRecord(line, ds)) {
+                return in;
+            }
         }
+        in.setstate(std::ios::failbit);
         return in;
     }
 
@@ -117,21 +93,11 @@ namespace nspace {
 int main() {
     std::vector<nspace::DataStruct> data;
 
-    while (std::cin) {
-        std::copy(
-            std::istream_iterator<nspace::DataStruct>(std::cin),
-            std::istream_iterator<nspace::DataStruct>(),
-            std::back_inserter(data)
-        );
-
-        if (std::cin.fail() && !std::cin.eof()) {
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-        else if (std::cin.eof()) {
-            break;
-        }
-    }
+    std::copy(
+        std::istream_iterator<nspace::DataStruct>(std::cin),
+        std::istream_iterator<nspace::DataStruct>(),
+        std::back_inserter(data)
+    );
 
     if (data.empty()) {
         std::cerr << "Looks like there is no supported record. Cannot determine input. Test skipped" << std::endl;
