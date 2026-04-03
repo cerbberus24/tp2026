@@ -57,8 +57,8 @@ std::istream& operator>>(std::istream& in, DataStruct& dest)
 
         std::istringstream iss(line);
         char dummy;
-        iss >> dummy; // '('
-        iss >> dummy; // ':'
+        iss >> dummy;
+        iss >> dummy;
 
         DataStruct temp;
         bool f1 = false, f2 = false, f3 = false;
@@ -67,8 +67,8 @@ std::istream& operator>>(std::istream& in, DataStruct& dest)
 
         while (iss >> std::ws && !iss.eof() && valid)
         {
-            iss >> dummy; // читаем ':'
-            iss >> key;   // читаем имя поля
+            iss >> dummy;
+            iss >> key;
 
             if (key == "key1" && !f1)
             {
