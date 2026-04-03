@@ -7,7 +7,6 @@
 #include <iterator>
 #include <sstream>
 #include <cctype>
-#include <regex>
 #include <iomanip>
 
 struct DataStruct {
@@ -17,10 +16,10 @@ struct DataStruct {
 };
 
 bool parseHexULL(const std::string& str, unsigned long long& value) {
-    if (str.empty() || str[0] != '0' || (str[1] != 'x' && str[1] != 'X')) {
+    if (str.length() < 3) {
         return false;
     }
-    if (str.length() < 3) {
+    if (str[0] != '0' || (str[1] != 'x' && str[1] != 'X')) {
         return false;
     }
     for (size_t i = 2; i < str.length(); ++i) {
@@ -35,18 +34,47 @@ bool parseHexULL(const std::string& str, unsigned long long& value) {
 }
 
 bool parseComplex(const std::string& str, std::complex<double>& value) {
-    std::regex complex_regex(R"(#c\(([+-]?\d*\.?\d+)\s+([+-]?\d*\.?\d+)\))");
-    std::smatch match;
-    if (std::regex_match(str, match, complex_regex) && match.size() == 3) {
-        double real, imag;
-        std::stringstream s_real(match[1].str());
-        std::stringstream s_imag(match[2].str());
-        if (s_real >> real && s_imag >> imag) {
-            value = std::complex<double>(real, imag);
-            return true;
+    if (str.length() < 5) {
+        return false;
+    }
+    if (str[0] != '#' || str[1] != 'c' || str[2] != '(' || str.back() != ')') {
+        return false;
+    }
+
+    std::string inner = str.substr(3, str.length() - 4);
+
+    size_t space_pos = inner.find(' ');
+    if (space_pos == std::string::npos || space_pos == 0 || space_pos == inner.length() - 1) {
+        return false;
+    }
+
+    for (size_t i = 0; i < inner.length(); ++i) {
+        if (i != space_pos && inner[i] == ' ') {
+            return false;
         }
     }
-    return false;
+
+    std::string real_str = inner.substr(0, space_pos);
+    std::string imag_str = inner.substr(space_pos + 1);
+
+    if (real_str.empty() || imag_str.empty()) {
+        return false;
+    }
+
+    double real, imag;
+    std::stringstream ss_real(real_str);
+    std::stringstream ss_imag(imag_str);
+
+    if (!(ss_real >> real) || !(ss_imag >> imag)) {
+        return false;
+    }
+
+    if (ss_real >> std::ws, !ss_real.eof() || ss_imag >> std::ws, !ss_imag.eof()) {
+        return false;
+    }
+
+    value = std::complex<double>(real, imag);
+    return true;
 }
 
 bool parseString(const std::string& str, std::string& value) {
@@ -141,11 +169,9 @@ std::istream& operator>>(std::istream& is, DataStruct& data) {
 
 std::ostream& operator<<(std::ostream& os, const DataStruct& data) {
     os << "(:key1 0x" << std::hex << std::uppercase << data.key1 << std::dec << std::nouppercase;
-    os << ":key2 #c(";
-    os << std::fixed << std::setprecision(1);
-    os << data.key2.real() << " " << data.key2.imag();
-    os << std::defaultfloat << "):";
-    os << "key3 \"" << data.key3 << "\":)";
+    os << ":key2 #c(" << std::fixed << std::setprecision(1);
+    os << data.key2.real() << " " << data.key2.imag() << std::defaultfloat << "):";
+    os << ":key3 \"" << data.key3 << "\":)";
     return os;
 }
 
