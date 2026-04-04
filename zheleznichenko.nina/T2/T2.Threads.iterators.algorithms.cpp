@@ -48,7 +48,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dest) {
   if (!sentry) return in;
 
   DataStruct input;
-  in >> DelimiterIO{ '(' } >> DelimiterIO{ ':' };
+  if (!(in >> DelimiterIO{ '(' } >> DelimiterIO{ ':' })) return in;
 
   for (int i = 0; i < 3 && in; ++i) {
     std::string label;
@@ -83,11 +83,20 @@ std::ostream& operator<<(std::ostream& out, const DataStruct& src) {
   std::ostream::sentry sentry(out);
   if (!sentry) return out;
 
-  out << "(:key1 0b" << (src.key1 == 0 ? "0" : "");
-  if (src.key1 > 0) {
+  out << "(:key1 0b";
+
+  if (src.key1 == 0) {
+    out << "0";
+  }
+  else {
     std::string b;
     unsigned long long n = src.key1;
-    while (n > 0) { b += (n % 2 ? '1' : '0'); n /= 2; }
+    while (n > 0) {
+      b += (n % 2 ? '1' : '0');
+      n /= 2;
+    }
+    if (src.key1 == 1) b += '0';
+
     std::reverse(b.begin(), b.end());
     out << b;
   }
