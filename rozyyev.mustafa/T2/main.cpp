@@ -55,12 +55,13 @@ bool compareDataStruct(const DataStruct& a, const DataStruct& b);
 int main() {
     std::vector<DataStruct> data;
 
-    while (!std::cin.eof()) {
+    while (std::cin) {
         std::copy(
             std::istream_iterator<DataStruct>(std::cin),
             std::istream_iterator<DataStruct>(),
             std::back_inserter(data)
-        );
+                 );
+
         if (std::cin.fail() && !std::cin.eof()) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -138,9 +139,7 @@ std::istream& operator>>(std::istream& in, StrIO&& dest) {
 
 std::istream& operator>>(std::istream& in, DataStruct& dest) {
     std::istream::sentry sentry(in);
-    if (!sentry) {
-        return in;
-    }
+    if (!sentry) return in;
 
     DataStruct input;
     bool hasKey1 = false, hasKey2 = false, hasKey3 = false;
@@ -149,22 +148,24 @@ std::istream& operator>>(std::istream& in, DataStruct& dest) {
 
     for (int i = 0; i < 3; ++i) {
         in >> DelimiterIO{ ':' };
-        std::string label;
-        in >> label;
-        if (!in) {
+        
+        char k = '0', e = '0', y = '0', num = '0';
+        in >> k >> e >> y >> num;
+
+        if (!in || k != 'k' || e != 'e' || y != 'y') {
             in.setstate(std::ios::failbit);
             return in;
         }
 
-        if (label == "key1" && !hasKey1) {
+        if (num == '1' && !hasKey1) {
             in >> SllIO{ input.key1 };
             hasKey1 = true;
         }
-        else if (label == "key2" && !hasKey2) {
+        else if (num == '2' && !hasKey2) {
             in >> CmpIO{ input.key2 };
             hasKey2 = true;
         }
-        else if (label == "key3" && !hasKey3) {
+        else if (num == '3' && !hasKey3) {
             in >> StrIO{ input.key3 };
             hasKey3 = true;
         }
@@ -176,10 +177,11 @@ std::istream& operator>>(std::istream& in, DataStruct& dest) {
 
     in >> DelimiterIO{ ':' } >> DelimiterIO{ ')' };
 
-    if (in && hasKey1 && hasKey2 && hasKey3)
+    if (in && hasKey1 && hasKey2 && hasKey3) {
         dest = std::move(input);
-    else
+    } else {
         in.setstate(std::ios::failbit);
+    }
 
     return in;
 }
