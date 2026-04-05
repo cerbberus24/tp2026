@@ -39,6 +39,11 @@ std::istream& operator>>(std::istream& in, LongLongIO&& dest) {
         return in;
     }
 
+    if (numberWithSuff.length() == 3 && (numberWithSuff[0] == '-' || numberWithSuff[0] == '+')) {
+        in.setstate(std::ios::failbit);
+        return in;
+    }
+
     size_t length = numberWithSuff.length();
     char firstSuffChar = std::tolower(numberWithSuff[length - 2]);
     char secondSuffChar = std::tolower(numberWithSuff[length - 1]);
@@ -46,6 +51,11 @@ std::istream& operator>>(std::istream& in, LongLongIO&& dest) {
     if (firstSuffChar == 'l' && secondSuffChar == 'l') {
         numberWithSuff.pop_back();
         numberWithSuff.pop_back();
+
+        if (numberWithSuff.empty() || numberWithSuff == "-" || numberWithSuff == "+") {
+            in.setstate(std::ios::failbit);
+            return in;
+        }
 
         std::stringstream converter(numberWithSuff);
         long long result = 0;
@@ -74,6 +84,18 @@ std::istream& operator>>(std::istream& in, DoubleIO&& dest) {
     bool dotFound = false;
     bool hasDigitsBeforeDot = false;
     bool hasDigitsAfterDot = false;
+    bool isNegative = false;
+
+
+    in >> std::ws;
+    if (in.peek() == '-') {
+        isNegative = true;
+        in.get(ch);
+        mantissaBuffer += '-';
+    }
+    else if (in.peek() =='+') {
+        in.get(ch);
+    }
 
     while (in.get(ch)) {
         if (std::isdigit(static_cast<unsigned char>(ch))) {
@@ -209,7 +231,7 @@ std::ostream& operator<<(std::ostream& out, const DataStruct& data) {
     int exponent = 0;
 
     if (data.key1 == 0.0) {
-        mantissa = 1.0;
+        mantissa = 0.0;
         exponent = 0;
     }
     else {
@@ -219,7 +241,7 @@ std::ostream& operator<<(std::ostream& out, const DataStruct& data) {
         }
         while (mantissa >= 10.0) {
             mantissa /= 10.0;
-            exponent++;
+            exponent = 0;
         }
     }
 
