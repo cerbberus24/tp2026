@@ -3,7 +3,7 @@
 #include <string>
 #include <stdexcept>
 
-constexpr PI = 3.1415;
+double constexpr PI = 3.1415;
 
 double Ring::getArea() const {
     double sq = PI * (maxRad_ * maxRad_ - minRad_ * minRad_);
