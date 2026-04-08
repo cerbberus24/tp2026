@@ -167,14 +167,20 @@ std::istream& operator>>(std::istream& is, DataStruct& ds)
             ds.key2 = {num, den};
             gotKey2 = true;
         }
+
         else if (fieldName == "key3")
         {
             std::string token;
-            while (is.get(c))
+            while (is.get(c) && c != '"') {} // идем до открывающей "
+
+            while(is.get(c))
             {
-                if (c == ':') break;
+                if (c == '"') break; // идем до закрывающей "
                 token += c;
             }
+
+            while (is.get(c) && c != ':') {}
+
             if (token.size() < 2 || token.front() != '"' || token.back() != '"')
             {
                 is.setstate(std::ios::failbit);
