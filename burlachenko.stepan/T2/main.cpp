@@ -172,7 +172,7 @@ std::istream& operator>>(std::istream& is, DataStruct& ds)
         {
             std::string token;
             while (is.get(c) && c != '"') {} // идем до открывающей "
-
+            token += '"';
             while(is.get(c))
             {
                 token += c;
