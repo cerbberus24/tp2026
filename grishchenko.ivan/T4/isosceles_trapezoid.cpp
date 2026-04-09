@@ -16,7 +16,6 @@ double IsoscelesTrapezoid::getArea()const {
 }
 Point IsoscelesTrapezoid::getCenter()const {
     Point center;
-    double offset = (bottomBase_ - topBase_) / 2.0;
     center.x = leftBottom_.x + bottomBase_ / 2.0;
     center.y = leftBottom_.y + height_ / 2.0;
     return center;
