@@ -21,8 +21,7 @@ bool isDoubleLit(const std::string& s)
     size_t pos = 0;
     try {
         std::stod(s, &pos);
-    }
-    catch (...) {
+    } catch (...) {
         return false;
     }
     if (pos + 1 != s.length()) return false;
@@ -47,8 +46,7 @@ bool isRational(const std::string& s)
         std::stoll(inner.substr(nPos, inner.find(":", nPos) - nPos));
         unsigned long long den = std::stoull(inner.substr(dPos, inner.find(":", dPos) - dPos));
         return den != 0;
-    }
-    catch (...) {
+    } catch (...) {
         return false;
     }
 }
@@ -73,96 +71,133 @@ std::string parseQuotedString(const std::string& s)
     return s.substr(1, s.length() - 2);
 }
 
-std::istream& operator>>(std::istream& in, DataStruct& data)
+class InputStreamIterator
 {
-    std::string line;
-    if (!std::getline(in, line))
+public:
+    using iterator_category = std::input_iterator_tag;
+    using value_type = DataStruct;
+    using difference_type = std::ptrdiff_t;
+    using pointer = const DataStruct*;
+    using reference = const DataStruct&;
+
+    InputStreamIterator() : in_(nullptr) {}
+    explicit InputStreamIterator(std::istream& in) : in_(&in)
     {
-        return in;
+        ++(*this);
     }
 
-    if (line.empty() || line.front() != '(' || line.back() != ')')
+    reference operator*() const { return value_; }
+    pointer operator->() const { return &value_; }
+
+    InputStreamIterator& operator++()
     {
-        in.setstate(std::ios::failbit);
-        return in;
-    }
+        if (!in_) return *this;
 
-    std::string content = line.substr(1, line.length() - 2);
+        std::string line;
+        while (std::getline(*in_, line))
+        {
+            if (line.empty()) continue;
 
-    std::vector<std::string> parts;
-    std::string current;
-    int bracketDepth = 0;
-    bool inQuotes = false;
+            if (line.front() != '(' || line.back() != ')') continue;
 
-    for (char c : content)
-    {
-        if (c == '"')
-        {
-            inQuotes = !inQuotes;
-            current += c;
-        }
-        else if (c == '(' && !inQuotes)
-        {
-            bracketDepth++;
-            current += c;
-        }
-        else if (c == ')' && !inQuotes)
-        {
-            bracketDepth--;
-            current += c;
-        }
-        else if (c == ':' && bracketDepth == 0 && !inQuotes)
-        {
-            if (!current.empty())
+            std::string content = line.substr(1, line.length() - 2);
+
+            std::vector<std::string> parts;
+            std::string current;
+            int bracketDepth = 0;
+            bool inQuotes = false;
+
+            for (char c : content)
             {
-                parts.push_back(current);
-                current.clear();
+                if (c == '"')
+                {
+                    inQuotes = !inQuotes;
+                    current += c;
+                }
+                else if (c == '(' && !inQuotes)
+                {
+                    bracketDepth++;
+                    current += c;
+                }
+                else if (c == ')' && !inQuotes)
+                {
+                    bracketDepth--;
+                    current += c;
+                }
+                else if (c == ':' && bracketDepth == 0 && !inQuotes)
+                {
+                    if (!current.empty())
+                    {
+                        parts.push_back(current);
+                        current.clear();
+                    }
+                }
+                else
+                {
+                    current += c;
+                }
+            }
+            if (!current.empty()) parts.push_back(current);
+
+            DataStruct result;
+            bool key1Ok = false, key2Ok = false, key3Ok = false;
+
+            for (const auto& part : parts)
+            {
+                size_t spacePos = part.find(' ');
+                if (spacePos == std::string::npos) continue;
+
+                std::string fieldName = part.substr(0, spacePos);
+                std::string fieldValue = part.substr(spacePos + 1);
+
+                if (fieldName == "key1" && isDoubleLit(fieldValue))
+                {
+                    result.key1 = parseDoubleLit(fieldValue);
+                    key1Ok = true;
+                }
+                else if (fieldName == "key2" && isRational(fieldValue))
+                {
+                    result.key2 = parseRational(fieldValue);
+                    key2Ok = true;
+                }
+                else if (fieldName == "key3" && isQuotedString(fieldValue))
+                {
+                    result.key3 = parseQuotedString(fieldValue);
+                    key3Ok = true;
+                }
+            }
+
+            if (key1Ok && key2Ok && key3Ok)
+            {
+                value_ = result;
+                return *this;
             }
         }
-        else
-        {
-            current += c;
-        }
+        in_ = nullptr;
+        return *this;
     }
-    if (!current.empty()) parts.push_back(current);
 
-    DataStruct result;
-    bool key1Ok = false, key2Ok = false, key3Ok = false;
-
-    for (const auto& part : parts)
+    InputStreamIterator operator++(int)
     {
-        size_t spacePos = part.find(' ');
-        if (spacePos == std::string::npos) continue;
-
-        std::string fieldName = part.substr(0, spacePos);
-        std::string fieldValue = part.substr(spacePos + 1);
-
-        if (fieldName == "key1" && isDoubleLit(fieldValue))
-        {
-            result.key1 = parseDoubleLit(fieldValue);
-            key1Ok = true;
-        }
-        else if (fieldName == "key2" && isRational(fieldValue))
-        {
-            result.key2 = parseRational(fieldValue);
-            key2Ok = true;
-        }
-        else if (fieldName == "key3" && isQuotedString(fieldValue))
-        {
-            result.key3 = parseQuotedString(fieldValue);
-            key3Ok = true;
-        }
+        InputStreamIterator tmp = *this;
+        ++(*this);
+        return tmp;
     }
 
-    if (key1Ok && key2Ok && key3Ok)
+    bool operator==(const InputStreamIterator& other) const
     {
-        data = result;
-        return in;
+        return in_ == other.in_;
     }
 
-    in.setstate(std::ios::failbit);
-    return in;
-}
+    bool operator!=(const InputStreamIterator& other) const
+    {
+        return !(*this == other);
+    }
+
+private:
+    std::istream* in_;
+    DataStruct value_;
+};
 
 std::ostream& operator<<(std::ostream& out, const DataStruct& data)
 {
@@ -176,8 +211,8 @@ int main()
 {
     std::vector<DataStruct> dataVector;
 
-    std::istream_iterator<DataStruct> inputBegin(std::cin);
-    std::istream_iterator<DataStruct> inputEnd;
+    InputStreamIterator inputBegin(std::cin);
+    InputStreamIterator inputEnd;
     std::copy(inputBegin, inputEnd, std::back_inserter(dataVector));
 
     std::sort(dataVector.begin(), dataVector.end(),
