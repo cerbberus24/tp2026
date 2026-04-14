@@ -71,6 +71,97 @@ std::string parseQuotedString(const std::string& s)
     return s.substr(1, s.length() - 2);
 }
 
+std::istream& operator>>(std::istream& in, DataStruct& data)
+{
+    std::string line;
+    if (!std::getline(in, line))
+    {
+        return in;
+    }
+
+    if (line.empty() || line.front() != '(' || line.back() != ')')
+    {
+        in.setstate(std::ios::failbit);
+        return in;
+    }
+
+    std::string content = line.substr(1, line.length() - 2);
+
+    std::vector<std::string> parts;
+    std::string current;
+    int bracketDepth = 0;
+    bool inQuotes = false;
+
+    for (char c : content)
+    {
+        if (c == '"')
+        {
+            inQuotes = !inQuotes;
+            current += c;
+        }
+        else if (c == '(' && !inQuotes)
+        {
+            bracketDepth++;
+            current += c;
+        }
+        else if (c == ')' && !inQuotes)
+        {
+            bracketDepth--;
+            current += c;
+        }
+        else if (c == ':' && bracketDepth == 0 && !inQuotes)
+        {
+            if (!current.empty())
+            {
+                parts.push_back(current);
+                current.clear();
+            }
+        }
+        else
+        {
+            current += c;
+        }
+    }
+    if (!current.empty()) parts.push_back(current);
+
+    DataStruct result;
+    bool key1Ok = false, key2Ok = false, key3Ok = false;
+
+    for (const auto& part : parts)
+    {
+        size_t spacePos = part.find(' ');
+        if (spacePos == std::string::npos) continue;
+
+        std::string fieldName = part.substr(0, spacePos);
+        std::string fieldValue = part.substr(spacePos + 1);
+
+        if (fieldName == "key1" && isDoubleLit(fieldValue))
+        {
+            result.key1 = parseDoubleLit(fieldValue);
+            key1Ok = true;
+        }
+        else if (fieldName == "key2" && isRational(fieldValue))
+        {
+            result.key2 = parseRational(fieldValue);
+            key2Ok = true;
+        }
+        else if (fieldName == "key3" && isQuotedString(fieldValue))
+        {
+            result.key3 = parseQuotedString(fieldValue);
+            key3Ok = true;
+        }
+    }
+
+    if (key1Ok && key2Ok && key3Ok)
+    {
+        data = result;
+        return in;
+    }
+
+    in.setstate(std::ios::failbit);
+    return in;
+}
+
 class InputStreamIterator
 {
 public:
