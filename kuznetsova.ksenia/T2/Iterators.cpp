@@ -18,10 +18,7 @@ namespace nspace {
 
     bool parseHexULL(const std::string& str, unsigned long long& value) {
         if (str.length() < 3) return false;
-
         if (str[0] != '0' || (str[1] != 'x' && str[1] != 'X')) return false;
-
-        //
         if (str.length() == 2) return false;
 
         for (size_t i = 2; i < str.length(); ++i) {
@@ -38,7 +35,6 @@ namespace nspace {
         return !s.fail();
     }
 
-    //
     bool parseComplex(const std::string& str, std::complex<double>& value) {
         if (str.length() < 6 || str[0] != '#' ||
             (str[1] != 'c' && str[1] != 'C') || str[2] != '(') {
@@ -58,13 +54,11 @@ namespace nspace {
             return false;
         }
 
-        //
         char leftover;
         if (ss >> leftover) {
             return false;
         }
 
-        //
         size_t space_pos = inner.find(' ');
         if (space_pos == std::string::npos) {
             return false;
@@ -176,19 +170,17 @@ namespace nspace {
         return is;
     }
 
-    //
     std::ostream& operator<<(std::ostream& os, const DataStruct& data) {
         os << "(:key1 0x" << std::hex << std::uppercase << data.key1
             << std::dec << std::nouppercase;
         os << ":key2 #c(";
         os << std::fixed << std::setprecision(1);
         os << data.key2.real() << " " << data.key2.imag();
-        os << std::defaultfloat << "):";
+        os << std::defaultfloat << ")";
         os << ":key3 \"" << data.key3 << "\":)";
         return os;
     }
 
-    //
     bool compareData(const DataStruct& a, const DataStruct& b) {
         if (a.key1 != b.key1) {
             return a.key1 < b.key1;
@@ -201,7 +193,7 @@ namespace nspace {
         return a.key3.length() < b.key3.length();
     }
 }
-//
+
 int main() {
     std::vector<nspace::DataStruct> data;
     std::string line;
