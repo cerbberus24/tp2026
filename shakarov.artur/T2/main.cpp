@@ -8,7 +8,6 @@
 #include <limits>
 #include <cmath>
 #include <cstdlib>
-#include <cctype>
 
 struct DataStruct {
     long long key1;
@@ -97,18 +96,21 @@ std::istream& operator>>(std::istream& in, SllIO&& dest) {
 
     std::streampos pos = in.tellg();
     char c1, c2;
-    if (in.get(c1) && in.get(c2)) {
-        if ((c1 == 'l' || c1 == 'L') && (c2 == 'l' || c2 == 'L')) {
-            if (in.peek() != ':' && in.peek() != ')' && !std::isspace(in.peek())) {
-                in.setstate(std::ios::failbit);
+    if (in.get(c1)) {
+        if (in.get(c2)) {
+            if ((c1 == 'l' || c1 == 'L') && (c2 == 'l' || c2 == 'L')) {
+                // Суффикс есть, проверяем разделитель
+                if (in.peek() != ':' && in.peek() != ')' && !std::isspace(in.peek())) {
+                    in.setstate(std::ios::failbit);
+                }
+            } else {
+                in.clear();
+                in.seekg(pos);
             }
         } else {
             in.clear();
             in.seekg(pos);
         }
-    } else {
-        in.clear();
-        in.seekg(pos);
     }
 
     return in;
@@ -158,6 +160,7 @@ std::istream& operator>>(std::istream& in, DataStruct& dest) {
         in >> DelimiterIO{ ':' };
         if (!in) return in;
 
+        // Читаем ключ как строку
         std::string key;
         char ch;
         while (in.get(ch) && std::isalpha(static_cast<unsigned char>(ch))) {
@@ -243,3 +246,4 @@ iofmtguard::~iofmtguard() {
     s_.precision(precision_);
     s_.flags(fmt_);
 }
+
