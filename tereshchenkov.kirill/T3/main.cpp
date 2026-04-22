@@ -147,11 +147,15 @@ int main(int argc, char* argv[]) {
                 res = std::accumulate(container.begin(), container.end(), 0.0,
                  AreaSummator([](const Polygon&){return true;})) / container.size();
             }
-            else {
+            else if(std::stoul(sub) > 2) {
                 size_t n = std::stoul(sub);
                 res = std::accumulate(container.begin(), container.end(), 0.0, AreaSummator(std::bind(isVertexCountEqual, _1, n)));
             }
             std::cout << std::fixed << std::setprecision(1) << res << std::endl;
+            else {
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                std::getline(std::cin, line);
+            }
         }
         else if (cmd == "MAX") {
             std::string sub; std::cin >> sub;
@@ -169,8 +173,14 @@ int main(int argc, char* argv[]) {
             std::string sub; std::cin >> sub;
             if (sub == "ODD") std::cout << std::count_if(container.begin(), container.end(), isVertexCountOdd) << std::endl;
             else if (sub == "EVEN") std::cout << std::count_if(container.begin(), container.end(), isVertexCountEven) << std::endl;
-            else std::cout << std::count_if(container.begin(), container.end(),
-             std::bind(isVertexCountEqual, _1, std::stoul(sub))) << std::endl;
+            else if (std::stoul(sub) > 2){
+                std::cout << std::count_if(container.begin(), container.end(),
+                std::bind(isVertexCountEqual, _1, std::stoul(sub))) << std::endl;
+            }
+            else {
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                std::getline(std::cin, line);
+            }
         }
         else if (cmd == "RECTS") {
             std::cout << std::count_if(container.begin(), container.end(), IsRectangle()) << std::endl;
@@ -180,7 +190,11 @@ int main(int argc, char* argv[]) {
             Polygon target = parsePolygon(pLine);
             SeqState finalState = std::accumulate(container.begin(), container.end(), SeqState(target),
                 std::bind(&SeqState::operator+, _1, _2));
-            std::cout << finalState.current_max << std::endl;
+            if(finalState.current_max != 0) std::cout << finalState.current_max << std::endl;
+            else{
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                std::getline(std::cin, line);
+            }
         }
         else {
             std::cout << "<INVALID COMMAND>" << std::endl;
