@@ -27,8 +27,8 @@ double polygonArea(const Polygon& p) {
     size_t n = p.points.size();
     for (size_t i = 0; i < n; ++i) {
         size_t j = (i + 1) % n;
-        sum += (long long)p.points[i].x * p.points[j].y -
-               (long long)p.points[j].x * p.points[i].y;
+        sum += static_cast<long long>(p.points[i].x) * p.points[j].y -
+               static_cast<long long>(p.points[j].x) * p.points[i].y;
     }
     return std::abs(sum) / 2.0;
 }
@@ -51,7 +51,7 @@ struct IsVertexCount {
     int target;
     IsVertexCount(int n) : target(n) {}
     bool operator()(const Polygon& p) const {
-        return (int)p.points.size() == target;
+        return static_cast<int>(p.points.size()) == target;
     }
 };
 struct SumAreaIfEven {
@@ -74,7 +74,7 @@ struct SumAreaIfVertex {
     int target;
     SumAreaIfVertex(int n) : target(n) {}
     double operator()(double acc, const Polygon& p) const {
-        if ((int)p.points.size() == target) {
+        if (static_cast<int>(p.points.size()) == target) {
             return acc + AreaCalculator()(p);
         }
         return acc;
@@ -84,28 +84,32 @@ bool isPermutation(const Polygon& a, const Polygon& b) {
     if (a.points.size() != b.points.size()) {
         return false;
     }
-    std::vector<Point> pa = a.points;
-    std::vector<Point> pb = b.points;
-    auto cmp = [](const Point& p1, const Point& p2) {
-        if (p1.x < p2.x) {
+    size_t n = a.points.size();
+    for (size_t start = 0; start < n; ++start) {
+        bool match = true;
+        for (size_t i = 0; i < n; ++i) {
+            if (!(a.points[i] == b.points[(start + i) % n])) {
+                match = false;
+                break;
+            }
+        }
+        if (match) {
             return true;
         }
-        if (p1.x > p2.x) {
-            return false;
+    }
+    for (size_t start = 0; start < n; ++start) {
+        bool match = true;
+        for (size_t i = 0; i < n; ++i) {
+            if (!(a.points[i] == b.points[(start + n - i) % n])) {
+                match = false;
+                break;
+            }
         }
-        return p1.y < p2.y;
-    };
-    std::sort(pa.begin(), pa.end(), cmp);
-    std::sort(pb.begin(), pb.end(), cmp);
-    for (size_t i = 0; i < pa.size(); ++i) {
-        if (pa[i].x != pb[i].x) {
-            return false;
-        }
-        if (pa[i].y != pb[i].y) {
-            return false;
+        if (match) {
+            return true;
         }
     }
-    return true;
+    return false;
 }
 struct IsPermutation {
     Polygon target;
@@ -133,6 +137,25 @@ struct IsSame {
     IsSame(const Polygon& t) : target(t) {}
     bool operator()(const Polygon& p) const {
         return isSamePolygon(p, target);
+    }
+};
+struct MaxSeqState {
+    size_t cur;
+    size_t best;
+};
+struct MaxSeqAccumulator {
+    const Polygon& target;
+    MaxSeqAccumulator(const Polygon& t) : target(t) {}
+    MaxSeqState operator()(MaxSeqState state, const Polygon& p) const {
+        if (isSamePolygon(p, target)) {
+            state.cur = state.cur + 1;
+            if (state.cur > state.best) {
+                state.best = state.cur;
+            }
+        } else {
+            state.cur = 0;
+        }
+        return state;
     }
 };
 bool parsePolygon(const std::string& line, Polygon& out) {
@@ -169,7 +192,7 @@ bool parsePolygon(const std::string& line, Polygon& out) {
     if (extra.empty() == false) {
         return false;
     }
-    if ((int)pts.size() != n) {
+    if (static_cast<int>(pts.size()) != n) {
         return false;
     }
     out.points = pts;
@@ -201,7 +224,7 @@ bool parsePolygonCommand(const std::vector<std::string>& tokens, Polygon& poly) 
     } catch (...) {
         return false;
     }
-    if ((int)tokens.size() < 2 + n) {
+    if (static_cast<int>(tokens.size()) < 2 + n) {
         return false;
     }
     Polygon p;
@@ -229,7 +252,7 @@ bool parsePolygonCommand(const std::vector<std::string>& tokens, Polygon& poly) 
         }
         p.points.push_back({x, y});
     }
-    if ((int)p.points.size() != n) {
+    if (static_cast<int>(p.points.size()) != n) {
         return false;
     }
     poly = p;
@@ -283,19 +306,10 @@ int main(int argc, char* argv[]) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            int maxlen = 0;
-            int curlen = 0;
-            for (size_t i = 0; i < polygons.size(); ++i) {
-                if (IsSame(target)(polygons[i])) {
-                    curlen = curlen + 1;
-                    if (curlen > maxlen) {
-                        maxlen = curlen;
-                    }
-                } else {
-                    curlen = 0;
-                }
-            }
-            std::cout << maxlen << std::endl;
+            MaxSeqAccumulator acc(target);
+            MaxSeqState state = std::accumulate(polygons.begin(), polygons.end(),
+                MaxSeqState{0, 0}, acc);
+            std::cout << state.best << std::endl;
         }
         else if (cmd == "AREA") {
             if (tokens.size() < 2) {
