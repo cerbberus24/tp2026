@@ -162,10 +162,7 @@ bool parsePolygon(const std::string& line, Polygon& out) {
     std::istringstream iss(line);
     int n;
     iss >> n;
-    if (iss.fail()) {
-        return false;
-    }
-    if (n <= 0) {
+    if (iss.fail() || n < 3) {
         return false;
     }
     std::vector<Point> pts;
@@ -173,26 +170,13 @@ bool parsePolygon(const std::string& line, Polygon& out) {
         char open, semi, close;
         int x, y;
         iss >> open >> x >> semi >> y >> close;
-        if (iss.fail()) {
-            return false;
-        }
-        if (open != '(') {
-            return false;
-        }
-        if (semi != ';') {
-            return false;
-        }
-        if (close != ')') {
+        if (iss.fail() || open != '(' || semi != ';' || close != ')') {
             return false;
         }
         pts.push_back({x, y});
     }
     std::string extra;
-    iss >> extra;
-    if (extra.empty() == false) {
-        return false;
-    }
-    if (static_cast<int>(pts.size()) != n) {
+    if (iss >> extra) {
         return false;
     }
     out.points = pts;
@@ -222,6 +206,9 @@ bool parsePolygonCommand(const std::vector<std::string>& tokens, Polygon& poly) 
     try {
         n = std::stoi(tokens[1]);
     } catch (...) {
+        return false;
+    }
+    if (n < 3) {
         return false;
     }
     if (static_cast<int>(tokens.size()) < 2 + n) {
@@ -318,11 +305,11 @@ int main(int argc, char* argv[]) {
             }
             std::string sub = tokens[1];
             std::transform(sub.begin(), sub.end(), sub.begin(), ::toupper);
-            if (polygons.empty()) {
-                std::cout << "<INVALID COMMAND>" << std::endl;
-                continue;
-            }
             if (sub == "MEAN") {
+                if (polygons.empty()) {
+                    std::cout << "<INVALID COMMAND>" << std::endl;
+                    continue;
+                }
                 double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
                     std::bind(std::plus<double>(),
                         std::placeholders::_1,
@@ -343,6 +330,10 @@ int main(int argc, char* argv[]) {
             else {
                 try {
                     int n = std::stoi(sub);
+                    if (n < 3) {
+                        std::cout << "<INVALID COMMAND>" << std::endl;
+                        continue;
+                    }
                     double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
                         SumAreaIfVertex(n));
                     std::cout << std::fixed << std::setprecision(1) << sum << std::endl;
@@ -370,6 +361,10 @@ int main(int argc, char* argv[]) {
             else {
                 try {
                     int n = std::stoi(sub);
+                    if (n < 3) {
+                        std::cout << "<INVALID COMMAND>" << std::endl;
+                        continue;
+                    }
                     int cnt = std::count_if(polygons.begin(), polygons.end(),
                         IsVertexCount(n));
                     std::cout << cnt << std::endl;
