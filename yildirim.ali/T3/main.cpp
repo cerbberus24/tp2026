@@ -198,53 +198,6 @@ std::vector<Polygon> readPolygons(const std::string& filename) {
     }
     return polygons;
 }
-bool parsePolygonCommand(const std::vector<std::string>& tokens, Polygon& poly) {
-    if (tokens.size() < 2) {
-        return false;
-    }
-    int n;
-    try {
-        n = std::stoi(tokens[1]);
-    } catch (...) {
-        return false;
-    }
-    if (n < 3) {
-        return false;
-    }
-    if (static_cast<int>(tokens.size()) < 2 + n) {
-        return false;
-    }
-    Polygon p;
-    for (int i = 0; i < n; ++i) {
-        std::string token = tokens[2 + i];
-        if (token.size() < 5) {
-            return false;
-        }
-        if (token.front() != '(') {
-            return false;
-        }
-        if (token.back() != ')') {
-            return false;
-        }
-        size_t semi = token.find(';');
-        if (semi == std::string::npos) {
-            return false;
-        }
-        int x, y;
-        try {
-            x = std::stoi(token.substr(1, semi - 1));
-            y = std::stoi(token.substr(semi + 1, token.size() - semi - 2));
-        } catch (...) {
-            return false;
-        }
-        p.points.push_back({x, y});
-    }
-    if (static_cast<int>(p.points.size()) != n) {
-        return false;
-    }
-    poly = p;
-    return true;
-}
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
@@ -274,8 +227,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
+            std::string rest;
+            for (size_t i = 1; i < tokens.size(); ++i) {
+                if (i > 1) rest += " ";
+                rest += tokens[i];
+            }
             Polygon target;
-            if (!parsePolygonCommand(tokens, target)) {
+            if (!parsePolygon(rest, target)) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
@@ -288,8 +246,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
+            std::string rest;
+            for (size_t i = 1; i < tokens.size(); ++i) {
+                if (i > 1) rest += " ";
+                rest += tokens[i];
+            }
             Polygon target;
-            if (!parsePolygonCommand(tokens, target)) {
+            if (!parsePolygon(rest, target)) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
