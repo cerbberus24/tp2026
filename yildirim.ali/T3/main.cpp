@@ -8,33 +8,70 @@
 #include <iomanip>
 #include <string>
 #include <cmath>
+#include <iterator>
 #include <cctype>
 
 struct Point {
     int x, y;
-    bool operator==(const Point& other) const {
-        return x == other.x && y == other.y;
-    }
 };
 struct Polygon {
     std::vector<Point> points;
 };
-double polygonArea(const Polygon& p) {
-    if (p.points.size() < 3) {
-        return 0.0;
+bool operator==(const Point& a, const Point& b) {
+    return a.x == b.x && a.y == b.y;
+}
+bool operator==(const Polygon& a, const Polygon& b) {
+    if (a.points.size() != b.points.size()) return false;
+    return std::equal(a.points.begin(), a.points.end(), b.points.begin());
+}
+std::istream& operator>>(std::istream& in, Point& dest) {
+    std::istream::sentry sentry(in);
+    if (!sentry) return in;
+    char c1, c2, c3;
+    int x, y;
+    if (in >> c1 >> x >> c2 >> y >> c3 &&
+        c1 == '(' && c2 == ';' && c3 == ')') {
+        dest = {x, y};
+    } else {
+        in.setstate(std::ios::failbit);
     }
-    long long sum = 0;
-    size_t n = p.points.size();
-    for (size_t i = 0; i < n; ++i) {
-        size_t j = (i + 1) % n;
-        sum += static_cast<long long>(p.points[i].x) * p.points[j].y -
-               static_cast<long long>(p.points[j].x) * p.points[i].y;
+    return in;
+}
+std::istream& operator>>(std::istream& in, Polygon& dest) {
+    std::istream::sentry sentry(in);
+    if (!sentry) return in;
+    size_t n;
+    if (!(in >> n) || n < 3) {
+        in.setstate(std::ios::failbit);
+        return in;
     }
+    Polygon tmp;
+    tmp.points.resize(n);
+    std::copy_n(std::istream_iterator<Point>(in), n, tmp.points.begin());
+    if (in) dest = tmp;
+    return in;
+}
+struct GaussSum {
+    const std::vector<Point>& p;
+    mutable size_t i;
+    explicit GaussSum(const std::vector<Point>& points) : p(points), i(0) {}
+    long long operator()(long long acc, const Point& curr) const {
+        const Point& next = p[(i + 1) % p.size()];
+        long long term = static_cast<long long>(curr.x) * next.y -
+                         static_cast<long long>(next.x) * curr.y;
+        ++i;
+        return acc + term;
+    }
+};
+double area(const Polygon& poly) {
+    if (poly.points.empty()) return 0.0;
+    long long sum = std::accumulate(poly.points.begin(), poly.points.end(),
+                                    0LL, GaussSum(poly.points));
     return std::abs(sum) / 2.0;
 }
 struct AreaCalculator {
     double operator()(const Polygon& p) const {
-        return polygonArea(p);
+        return area(p);
     }
 };
 struct IsEvenVertex {
@@ -48,68 +85,32 @@ struct IsOddVertex {
     }
 };
 struct IsVertexCount {
-    int target;
-    IsVertexCount(int n) : target(n) {}
+    size_t target;
+    IsVertexCount(size_t n) : target(n) {}
     bool operator()(const Polygon& p) const {
-        return static_cast<int>(p.points.size()) == target;
+        return p.points.size() == target;
     }
 };
 struct SumAreaIfEven {
     double operator()(double acc, const Polygon& p) const {
-        if (p.points.size() % 2 == 0) {
-            return acc + AreaCalculator()(p);
-        }
-        return acc;
+        return IsEvenVertex()(p) ? acc + area(p) : acc;
     }
 };
 struct SumAreaIfOdd {
     double operator()(double acc, const Polygon& p) const {
-        if (p.points.size() % 2 == 1) {
-            return acc + AreaCalculator()(p);
-        }
-        return acc;
+        return IsOddVertex()(p) ? acc + area(p) : acc;
     }
 };
 struct SumAreaIfVertex {
-    int target;
-    SumAreaIfVertex(int n) : target(n) {}
+    size_t target;
+    SumAreaIfVertex(size_t n) : target(n) {}
     double operator()(double acc, const Polygon& p) const {
-        if (static_cast<int>(p.points.size()) == target) {
-            return acc + AreaCalculator()(p);
-        }
-        return acc;
+        return p.points.size() == target ? acc + area(p) : acc;
     }
 };
 bool isPermutation(const Polygon& a, const Polygon& b) {
-    if (a.points.size() != b.points.size()) {
-        return false;
-    }
-    size_t n = a.points.size();
-    for (size_t start = 0; start < n; ++start) {
-        bool match = true;
-        for (size_t i = 0; i < n; ++i) {
-            if (!(a.points[i] == b.points[(start + i) % n])) {
-                match = false;
-                break;
-            }
-        }
-        if (match) {
-            return true;
-        }
-    }
-    for (size_t start = 0; start < n; ++start) {
-        bool match = true;
-        for (size_t i = 0; i < n; ++i) {
-            if (!(a.points[i] == b.points[(start + n - i) % n])) {
-                match = false;
-                break;
-            }
-        }
-        if (match) {
-            return true;
-        }
-    }
-    return false;
+    if (a.points.size() != b.points.size()) return false;
+    return std::is_permutation(a.points.begin(), a.points.end(), b.points.begin());
 }
 struct IsPermutation {
     Polygon target;
@@ -118,25 +119,11 @@ struct IsPermutation {
         return isPermutation(p, target);
     }
 };
-bool isSamePolygon(const Polygon& a, const Polygon& b) {
-    if (a.points.size() != b.points.size()) {
-        return false;
-    }
-    for (size_t i = 0; i < a.points.size(); ++i) {
-        if (a.points[i].x != b.points[i].x) {
-            return false;
-        }
-        if (a.points[i].y != b.points[i].y) {
-            return false;
-        }
-    }
-    return true;
-}
 struct IsSame {
     Polygon target;
     IsSame(const Polygon& t) : target(t) {}
     bool operator()(const Polygon& p) const {
-        return isSamePolygon(p, target);
+        return p == target;
     }
 };
 struct MaxSeqState {
@@ -145,43 +132,17 @@ struct MaxSeqState {
 };
 struct MaxSeqAccumulator {
     const Polygon& target;
-    MaxSeqAccumulator(const Polygon& t) : target(t) {}
+    explicit MaxSeqAccumulator(const Polygon& t) : target(t) {}
     MaxSeqState operator()(MaxSeqState state, const Polygon& p) const {
-        if (isSamePolygon(p, target)) {
-            state.cur = state.cur + 1;
-            if (state.cur > state.best) {
-                state.best = state.cur;
-            }
+        if (p == target) {
+            state.cur++;
+            if (state.cur > state.best) state.best = state.cur;
         } else {
             state.cur = 0;
         }
         return state;
     }
 };
-bool parsePolygon(const std::string& line, Polygon& out) {
-    std::istringstream iss(line);
-    int n;
-    iss >> n;
-    if (iss.fail() || n < 3) {
-        return false;
-    }
-    std::vector<Point> pts;
-    for (int i = 0; i < n; ++i) {
-        char open, semi, close;
-        int x, y;
-        iss >> open >> x >> semi >> y >> close;
-        if (iss.fail() || open != '(' || semi != ';' || close != ')') {
-            return false;
-        }
-        pts.push_back({x, y});
-    }
-    std::string extra;
-    if (iss >> extra) {
-        return false;
-    }
-    out.points = pts;
-    return true;
-}
 std::vector<Polygon> readPolygons(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -191,9 +152,14 @@ std::vector<Polygon> readPolygons(const std::string& filename) {
     std::vector<Polygon> polygons;
     std::string line;
     while (std::getline(file, line)) {
+        if (line.empty()) continue;
+        std::istringstream iss(line);
         Polygon p;
-        if (parsePolygon(line, p)) {
-            polygons.push_back(p);
+        if (iss >> p) {
+            iss >> std::ws;
+            if (iss.eof()) {
+                polygons.push_back(p);
+            }
         }
     }
     return polygons;
@@ -203,37 +169,30 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
         return 1;
     }
+
     std::vector<Polygon> polygons = readPolygons(argv[1]);
+    std::cout << std::fixed << std::setprecision(1);
 
     std::string line;
     while (std::getline(std::cin, line)) {
-        if (line.empty()) {
-            continue;
-        }
+        if (line.empty()) continue;
+
         std::istringstream iss(line);
-        std::vector<std::string> tokens;
-        std::string token;
-        while (iss >> token) {
-            tokens.push_back(token);
-        }
-        if (tokens.empty()) {
-            continue;
-        }
-        std::string cmd = tokens[0];
+        std::string cmd;
+        iss >> cmd;
+        if (cmd.empty()) continue;
+
         std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
 
         if (cmd == "PERMS") {
-            if (tokens.size() < 2) {
+            Polygon target;
+            iss >> target;
+            if (iss.fail()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            std::string rest;
-            for (size_t i = 1; i < tokens.size(); ++i) {
-                if (i > 1) rest += " ";
-                rest += tokens[i];
-            }
-            Polygon target;
-            if (!parsePolygon(rest, target)) {
+            iss >> std::ws;
+            if (!iss.eof()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
@@ -242,17 +201,14 @@ int main(int argc, char* argv[]) {
             std::cout << cnt << std::endl;
         }
         else if (cmd == "MAXSEQ") {
-            if (tokens.size() < 2) {
+            Polygon target;
+            iss >> target;
+            if (iss.fail()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            std::string rest;
-            for (size_t i = 1; i < tokens.size(); ++i) {
-                if (i > 1) rest += " ";
-                rest += tokens[i];
-            }
-            Polygon target;
-            if (!parsePolygon(rest, target)) {
+            iss >> std::ws;
+            if (!iss.eof()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
@@ -262,82 +218,88 @@ int main(int argc, char* argv[]) {
             std::cout << state.best << std::endl;
         }
         else if (cmd == "AREA") {
-            if (tokens.size() < 2) {
+            std::string sub;
+            iss >> sub;
+            if (sub.empty()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            std::string sub = tokens[1];
+            iss >> std::ws;
+            if (!iss.eof()) {
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                continue;
+            }
             std::transform(sub.begin(), sub.end(), sub.begin(), ::toupper);
             if (sub == "MEAN") {
                 if (polygons.empty()) {
                     std::cout << "<INVALID COMMAND>" << std::endl;
                     continue;
                 }
-                double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
+                double total = std::accumulate(polygons.begin(), polygons.end(), 0.0,
                     std::bind(std::plus<double>(),
                         std::placeholders::_1,
                         std::bind(AreaCalculator(), std::placeholders::_2)));
-                double res = sum / polygons.size();
-                std::cout << std::fixed << std::setprecision(1) << res << std::endl;
+                std::cout << total / polygons.size() << std::endl;
             }
             else if (sub == "EVEN") {
-                double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
-                    SumAreaIfEven());
-                std::cout << std::fixed << std::setprecision(1) << sum << std::endl;
+                double total = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAreaIfEven());
+                std::cout << total << std::endl;
             }
             else if (sub == "ODD") {
-                double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
-                    SumAreaIfOdd());
-                std::cout << std::fixed << std::setprecision(1) << sum << std::endl;
+                double total = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAreaIfOdd());
+                std::cout << total << std::endl;
             }
             else {
-                try {
-                    int n = std::stoi(sub);
-                    if (n < 3) {
-                        std::cout << "<INVALID COMMAND>" << std::endl;
-                        continue;
-                    }
-                    double sum = std::accumulate(polygons.begin(), polygons.end(), 0.0,
-                        SumAreaIfVertex(n));
-                    std::cout << std::fixed << std::setprecision(1) << sum << std::endl;
-                } catch (...) {
+                std::istringstream num_stream(sub);
+                size_t n;
+                if (num_stream >> n && num_stream.eof() && n >= 3) {
+                    double total = std::accumulate(polygons.begin(), polygons.end(), 0.0, SumAreaIfVertex(n));
+                    std::cout << total << std::endl;
+                } else {
                     std::cout << "<INVALID COMMAND>" << std::endl;
                 }
             }
         }
         else if (cmd == "COUNT") {
-            if (tokens.size() < 2) {
+            std::string sub;
+            iss >> sub;
+            if (sub.empty()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            std::string sub = tokens[1];
+            iss >> std::ws;
+            if (!iss.eof()) {
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                continue;
+            }
             if (sub == "EVEN") {
-                int cnt = std::count_if(polygons.begin(), polygons.end(),
-                    IsEvenVertex());
+                int cnt = std::count_if(polygons.begin(), polygons.end(), IsEvenVertex());
                 std::cout << cnt << std::endl;
             }
             else if (sub == "ODD") {
-                int cnt = std::count_if(polygons.begin(), polygons.end(),
-                    IsOddVertex());
+                int cnt = std::count_if(polygons.begin(), polygons.end(), IsOddVertex());
                 std::cout << cnt << std::endl;
             }
             else {
-                try {
-                    int n = std::stoi(sub);
-                    if (n < 3) {
-                        std::cout << "<INVALID COMMAND>" << std::endl;
-                        continue;
-                    }
-                    int cnt = std::count_if(polygons.begin(), polygons.end(),
-                        IsVertexCount(n));
+                std::istringstream num_stream(sub);
+                size_t n;
+                if (num_stream >> n && num_stream.eof() && n >= 3) {
+                    int cnt = std::count_if(polygons.begin(), polygons.end(), IsVertexCount(n));
                     std::cout << cnt << std::endl;
-                } catch (...) {
+                } else {
                     std::cout << "<INVALID COMMAND>" << std::endl;
                 }
             }
         }
         else if (cmd == "MIN") {
-            if (tokens.size() < 2) {
+            std::string sub;
+            iss >> sub;
+            if (sub.empty()) {
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                continue;
+            }
+            iss >> std::ws;
+            if (!iss.eof()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
@@ -345,15 +307,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            std::string sub = tokens[1];
             std::transform(sub.begin(), sub.end(), sub.begin(), ::toupper);
             if (sub == "AREA") {
                 auto it = std::min_element(polygons.begin(), polygons.end(),
                     std::bind(std::less<double>(),
                         std::bind(AreaCalculator(), std::placeholders::_1),
                         std::bind(AreaCalculator(), std::placeholders::_2)));
-                double val = AreaCalculator()(*it);
-                std::cout << std::fixed << std::setprecision(1) << val << std::endl;
+                std::cout << area(*it) << std::endl;
             }
             else if (sub == "VERTEXES") {
                 auto it = std::min_element(polygons.begin(), polygons.end(),
@@ -367,7 +327,14 @@ int main(int argc, char* argv[]) {
             }
         }
         else if (cmd == "MAX") {
-            if (tokens.size() < 2) {
+            std::string sub;
+            iss >> sub;
+            if (sub.empty()) {
+                std::cout << "<INVALID COMMAND>" << std::endl;
+                continue;
+            }
+            iss >> std::ws;
+            if (!iss.eof()) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
@@ -375,15 +342,13 @@ int main(int argc, char* argv[]) {
                 std::cout << "<INVALID COMMAND>" << std::endl;
                 continue;
             }
-            std::string sub = tokens[1];
             std::transform(sub.begin(), sub.end(), sub.begin(), ::toupper);
             if (sub == "AREA") {
                 auto it = std::max_element(polygons.begin(), polygons.end(),
                     std::bind(std::less<double>(),
                         std::bind(AreaCalculator(), std::placeholders::_1),
                         std::bind(AreaCalculator(), std::placeholders::_2)));
-                double val = AreaCalculator()(*it);
-                std::cout << std::fixed << std::setprecision(1) << val << std::endl;
+                std::cout << area(*it) << std::endl;
             }
             else if (sub == "VERTEXES") {
                 auto it = std::max_element(polygons.begin(), polygons.end(),
